@@ -9,32 +9,49 @@ use function mb_strlen;
 
 final class Cpf extends Sanitization
 {
+    private const LAST_VALUE = 10;
+
+    private const MAIN_CPF_NUMBER = 8;
+
     public function validateCpf($attribute, $value): bool
     {
-        $c = $this->sanitize($value);
+        $cpf = str_split($value);
+        $items = [$cpf[9], $cpf[10]];
+        $result = [];
 
-        if (mb_strlen($c) != 11 || preg_match("/^{$c[0]}{11}$/", $c)) {
-            return false;
+        for($i = self::LAST_VALUE; $i > self::MAIN_CPF_NUMBER; $i--) {
+            $total = $this->cpfHandle(self::LAST_VALUE, $value);
+            $result[] = $this->cpfVerification($total);
         }
 
-        for (
-            $s = 10, $n = 0, $i = 0; $s >= 2; $n += $c[$i++] * $s--
-        ) {
+        return $items === $result;
+    }
+
+    public function cpfHandle(int $position, string $cpf): int 
+    {
+
+        $decrement = 2;
+        $cpf = substr($cpf, 0, $position - $decrement);
+        $total = 0;
+        dd(count(str_split($cpf)));
+        foreach(str_split($cpf) as $item) {
+
+            $total += (int)$item * $position;
+            $position--;
         }
 
-        if ($c[9] != ((($n %= 11) < 2) ? 0 : 11 - $n)) {
-            return false;
+        $decrement--;
+
+        return $total;
+    }
+
+    public function cpfVerification(int $total): int
+    {
+        // dd($total);
+        if($total % 11 < 2) {
+            return 0;
         }
 
-        for (
-            $s = 11, $n = 0, $i = 0; $s >= 2; $n += $c[$i++] * $s--
-        ) {
-        }
-
-        if ($c[10] != ((($n %= 11) < 2) ? 0 : 11 - $n)) {
-            return false;
-        }
-
-        return true;
+        return 11 - ($total % 11);
     }
 }
